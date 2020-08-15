@@ -28,6 +28,9 @@ struct Intersection { vec3 normal; vec3 emission; vec3 color; vec2 uv; int type;
 #include <pathtracing_physical_sky_functions>
 	
 
+vec3 camUp;
+vec3 camForward;
+
 //---------------------------------------------------------------------------------------------------------
 float DisplacementBoxIntersect( vec3 minCorner, vec3 maxCorner, Ray r )
 //---------------------------------------------------------------------------------------------------------
@@ -456,7 +459,7 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 		
 		// useful data 
 		n = normalize(intersec.normal);
-                nl = dot(n, r.direction) < 0.0 ? normalize(n) : normalize(-n);
+        nl = dot(n, r.direction) < 0.0 ? normalize(n) : normalize(-n);
 		x = r.origin + r.direction * t;
 		
 		if (bounces == 0) 
@@ -561,21 +564,45 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 	// atmospheric haze effect (aerial perspective)
 	float hitDistance;
 	
-	if ( skyHit ) // sky and clouds
+	if ( skyHit && !fromCamera ) // sky and clouds
 	{
 		vec3 cloudColor = cld.rgb / (cld.a + 0.00001);
 		vec3 sunColor;
 		
-		if (!fromCamera) {
-			sunColor = clamp(Get_Sky_Color( Ray(skyPos, normalize((randVec * 0.03) + sunDirection)), sunDirection, false ), 0.0, 1.0);
-		
-			cloudColor *= mix(sunColor, vec3(1), max(0.0, dot(vec3(0,1,0), sunDirection)) );
-			cloudColor = mix(initialSkyColor, cloudColor, clamp(cld.a, 0.0, 1.0));
-		
-			hitDistance = distance(skyRay.origin, skyPos);
-			accumCol = mask * mix( accumCol, cloudColor, clamp( exp2( -hitDistance * 0.004 ), 0.0, 1.0 ) );
-		}
-	}	
+		sunColor = clamp(Get_Sky_Color( Ray(skyPos, normalize((randVec * 0.03) + sunDirection)), sunDirection, false ), 0.0, 1.0);
+	
+		cloudColor *= mix(sunColor, vec3(1), max(0.0, dot(vec3(0,1,0), sunDirection)) );
+		cloudColor = mix(initialSkyColor, cloudColor, clamp(cld.a, 0.0, 1.0));
+	
+		hitDistance = distance(skyRay.origin, skyPos);
+		accumCol = mask * mix( accumCol, cloudColor, clamp( exp2( -hitDistance * 0.004 ), 0.0, 1.0 ) );
+	}
+	else if ( skyHit && fromCamera )
+	{
+		// do refraction here
+		//vec3 plane = normalize(vec3(camRight, 1000, camForward));
+		float interpolate = 0.95;
+		vec3 plane = normalize(camUp * interpolate + camForward * (1.0-interpolate));
+
+		float dp = PlaneIntersect( vec4(plane.x, plane.y, plane.z, 100), r );
+
+		n = normalize(plane);
+        nl = dot(n, r.direction) < 0.0 ? normalize(n) : normalize(-n);
+		x = r.origin + r.direction * dp;
+
+		nc = 1.0; // IOR of space
+		nt = 1.003; // IOR of atmosphere (exaggerated)
+		Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
+
+		tdir = refract(r.direction, nl, ratioIoR);
+		r = Ray(x, normalize(tdir));
+
+		// does this new ray r hit the sun? if so calculate sunColor
+		//vec3 sunColor = clamp(Get_Sky_Color( r, sunDirection, false ), 0.0, 1.0);
+		//accumCol = Get_Sky_Color( r, normalize(sunDirection), false );
+		//accumCol = mix(Get_Sky_Color( r, normalize(sunDirection), false ), initialSkyColor, 0.5);
+		accumCol = mix(Get_Sky_Color( r, normalize(sunDirection), false ), accumCol, 0.5);
+	}
 	else // terrain and other objects
 	{
 		hitDistance = distance(cameraRay.origin, firstX);
@@ -616,9 +643,9 @@ void main( void )
 	// not needed, three.js has a built-in uniform named cameraPosition
 	//vec3 camPos   = vec3( uCameraMatrix[3][0],  uCameraMatrix[3][1],  uCameraMatrix[3][2]);
 	
-    	vec3 camRight   = vec3( uCameraMatrix[0][0],  uCameraMatrix[0][1],  uCameraMatrix[0][2]);
-    	vec3 camUp      = vec3( uCameraMatrix[1][0],  uCameraMatrix[1][1],  uCameraMatrix[1][2]);
-	vec3 camForward = vec3(-uCameraMatrix[2][0], -uCameraMatrix[2][1], -uCameraMatrix[2][2]);
+    vec3 camRight   = vec3( uCameraMatrix[0][0],  uCameraMatrix[0][1],  uCameraMatrix[0][2]);
+    camUp      = vec3( uCameraMatrix[1][0],  uCameraMatrix[1][1],  uCameraMatrix[1][2]);
+	camForward = vec3(-uCameraMatrix[2][0], -uCameraMatrix[2][1], -uCameraMatrix[2][2]);
 	
 	// seed for rand(seed) function
 	uvec2 seed = uvec2(uFrameCounter, uFrameCounter + 1.0) * uvec2(gl_FragCoord);

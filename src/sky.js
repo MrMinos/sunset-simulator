@@ -85,6 +85,13 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera)
 	}
 	// Sun wavelength samples
 	else {
+
+		// ray r intersects with a boundary surface plane
+
+		// at the intersection, find the exit angle and check for intersection with sun
+		// do it in the shader??
+
+		// 
 		vec3 acc;
 
 
@@ -92,7 +99,8 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera)
 		float g = exp(-(TOTAL_RAYLEIGH.y * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
 		float b = exp(-(TOTAL_RAYLEIGH.z * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
 
-		sun = (sunE * SUN_POWER * vec3 (r, g, b)) * sundisk;
+		//sun = (sunE * SUN_POWER * vec3 (r, g, b)) * sundisk;
+		sun = vec3(0,0,10) * sunE * SUN_POWER * sundisk;
 	}
 
 	
