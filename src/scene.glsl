@@ -595,16 +595,39 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
         nl = dot(n, r.direction) < 0.0 ? normalize(n) : normalize(-n);
 		x = r.origin + r.direction * dp;
 
-		nc = 1.0; // IOR of space
-		nt = 1.003; // IOR of atmosphere (exaggerated)
-		Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
+		vec3 color;
 
-		tdir = refract(r.direction, nl, ratioIoR);
-		r = Ray(x, normalize(tdir));
+		{ // red
+			nc = 1.0; // IOR of space
+			nt = 1.0002; // IOR of atmosphere (exaggerated)
+			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
 
-		vec3 color = Get_Sky_Color( r, normalize(sunDirection), true, 0 );
-		color += Get_Sky_Color( r, normalize(sunDirection), true, 1 );
-		color += Get_Sky_Color( r, normalize(sunDirection), true, 2 );
+			tdir = refract(r.direction, nl, ratioIoR);
+			Ray r_red = Ray(x, normalize(tdir));
+
+			color += Get_Sky_Color( r_red, normalize(sunDirection), true, 0 );
+		}
+		{ // green
+			nc = 1.0; // IOR of space
+			nt = 1.0015; // IOR of atmosphere (exaggerated)
+			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
+
+			tdir = refract(r.direction, nl, ratioIoR);
+			Ray r_green = Ray(x, normalize(tdir));
+
+			color += Get_Sky_Color( r_green, normalize(sunDirection), true, 1 );
+
+		}
+		{ // blue
+			nc = 1.0; // IOR of space
+			nt = 1.003; // IOR of atmosphere (exaggerated)
+			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
+
+			tdir = refract(r.direction, nl, ratioIoR);
+			Ray r_blue = Ray(x, normalize(tdir));
+
+			color += Get_Sky_Color( r_blue, normalize(sunDirection), true, 2 );
+		}
 
 		if (showRealSun)
 			accumCol = mix(color, accumCol, 0.5);
