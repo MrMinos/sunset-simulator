@@ -26,7 +26,7 @@ float SunIntensity(float zenithAngleCos)
 	return SUN_POWER * max( 0.0, 1.0 - exp( -( CUTOFF_ANGLE - acos(zenithAngleCos) ) ) );
 }
 
-vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera)
+vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera, int rgb)
 {
 
     // TODO
@@ -92,15 +92,17 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera)
 		// do it in the shader??
 
 		// 
-		vec3 acc;
+		vec3 color;
 
-
-		float r = exp(-(TOTAL_RAYLEIGH.x * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
-		float g = exp(-(TOTAL_RAYLEIGH.y * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
-		float b = exp(-(TOTAL_RAYLEIGH.z * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
+		if (rgb == 0)
+			color = vec3(exp(-(TOTAL_RAYLEIGH.x * RAYLEIGH_COEFFICIENT * rayleighOpticalLength)),0,0);
+		else if (rgb == 1)
+			color = vec3(0, exp(-(TOTAL_RAYLEIGH.y * RAYLEIGH_COEFFICIENT * rayleighOpticalLength)), 0);
+		else
+			color = vec3(0, 0, exp(-(TOTAL_RAYLEIGH.z * RAYLEIGH_COEFFICIENT * rayleighOpticalLength)));
 
 		//sun = (sunE * SUN_POWER * vec3 (r, g, b)) * sundisk;
-		sun = vec3(0,0,10) * sunE * SUN_POWER * sundisk;
+		sun = color * sunE * SUN_POWER * sundisk;
 	}
 
 	
