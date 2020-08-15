@@ -599,7 +599,7 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 
 		{ // red
 			nc = 1.0; // IOR of space
-			nt = 1.0002; // IOR of atmosphere (exaggerated)
+			nt = 1.0018; // IOR of atmosphere (exaggerated)
 			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
 
 			tdir = refract(r.direction, nl, ratioIoR);
@@ -609,7 +609,7 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 		}
 		{ // green
 			nc = 1.0; // IOR of space
-			nt = 1.0015; // IOR of atmosphere (exaggerated)
+			nt = 1.0025; // IOR of atmosphere (exaggerated)
 			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
 
 			tdir = refract(r.direction, nl, ratioIoR);
