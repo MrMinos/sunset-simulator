@@ -23,16 +23,16 @@ vec3 totalMie()
 
 float SunIntensity(float zenithAngleCos)
 {
-	return SUN_POWER * max( 0.0, 1.0 - exp( -( CUTOFF_ANGLE - acos(zenithAngleCos) ) ) );
+	return SUN_POWER * max( 0.01, 1.0 - exp(-0.01 -( CUTOFF_ANGLE - acos(zenithAngleCos) ) ) );
 }
 
 vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera, int rgb)
 {
 
-    // TODO
-    // 1. Wavelength sampling
+    // Implemented
+    // 1. Wavelength sampling/Spectral Ray Tracer (on Sun)
     // 2. Dynamic refraction
-    // 3. Atmospheric refraction (automatic?)
+    // 3. Atmospheric refraction
 
     vec3 viewDir = normalize(r.direction);
 	
@@ -41,7 +41,7 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera, int rgb)
     // Cosine angles
 	float cosViewSunAngle = dot(viewDir, sunDirection);
 	float cosSunUpAngle = dot(sunDirection, UP_VECTOR); // allowed to be negative: + is daytime, - is nighttime
-	float cosUpViewAngle = max(0.0001, dot(UP_VECTOR, viewDir)); // cannot be 0, used as divisor
+	float cosUpViewAngle = max(0.000001, dot(UP_VECTOR, viewDir)); // cannot be 0, used as divisor
 
 	// Get sun intensity based on how high in the sky it is
 	float sunE = SunIntensity(cosSunUpAngle);
@@ -82,10 +82,11 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera, int rgb)
 	// composition + solar disk
 	if (!rayFromCamera) {
 		sun = (sunE * SUN_POWER * Fex) * sundisk;
+		if (rgb == 10)
+			sun = (sunE * SUN_POWER * vec3(0,1,0)) * sundisk;
 	}
 	// Sun wavelength samples
 	else {
-
 		// ray r intersects with a boundary surface plane
 
 		// at the intersection, find the exit angle and check for intersection with sun

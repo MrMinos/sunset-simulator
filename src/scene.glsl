@@ -67,7 +67,7 @@ float DisplacementBoxIntersect( vec3 minCorner, vec3 maxCorner, Ray r )
 #define WATER_COLOR vec3(0.96, 1.0, 0.98)
 #define WATER_SAMPLE_SCALE 0.05 
 #define WATER_WAVE_HEIGHT 2.0 // max height of water waves   
-#define WATER_FREQ        1.0 // wave density: lower = spread out, higher = close together
+#define WATER_FREQ        0.50 // wave density: lower = spread out, higher = close together
 #define WATER_CHOPPY      1.0 // smaller beachfront-type waves, they travel in parallel
 #define WATER_SPEED       0.5 // how quickly time passes
 #define OCTAVE_M  mat2(1.6, 1.2, -1.2, 1.6);
@@ -218,10 +218,11 @@ vec4 render_clouds( Ray eye, vec3 p, vec3 sunDirection )
 }
 
 // TERRAIN
-#define TERRAIN_HEIGHT 2000.0
+#define TERRAIN_HEIGHT 2100.0
 #define TERRAIN_SAMPLE_SCALE 0.00004 
 #define TERRAIN_LIFT -1300.0 // how much to lift or drop the entire terrain
-#define TERRAIN_FAR 100000.0
+#define TERRAIN_FAR 150000.0
+//#define TERRAIN_FAR 100000.0
 
 float lookup_Heightmap( in vec3 pos )
 {
@@ -421,7 +422,7 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 			{
 				skyHit = true;
 				firstX = skyPos;
-				accumCol = Get_Sky_Color(r, normalize(sunDirection), false, 5);
+				accumCol = initialSkyColor;
 				fromCamera = true;
 				break; // exit early	
 			}
@@ -579,7 +580,10 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 	}
 	else if ( skyHit && fromCamera )
 	{
-		accumCol = Get_Sky_Color( r, normalize(sunDirection), true, 1 );
+		bool showRealSun = false;
+		if (showRealSun)
+			accumCol = Get_Sky_Color( r, normalize(sunDirection), false, 10 );
+
 		// do refraction here
 		//vec3 plane = normalize(vec3(camRight, 1000, camForward));
 		float interpolate = 0.83;
@@ -592,18 +596,20 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 		x = r.origin + r.direction * dp;
 
 		nc = 1.0; // IOR of space
-		nt = 1.006; // IOR of atmosphere (exaggerated)
+		nt = 1.003; // IOR of atmosphere (exaggerated)
 		Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
 
 		tdir = refract(r.direction, nl, ratioIoR);
 		r = Ray(x, normalize(tdir));
 
-		// does this new ray r hit the sun? if so calculate sunColor
-		//vec3 sunColor = clamp(Get_Sky_Color( r, sunDirection, false ), 0.0, 1.0);
-		//accumCol = Get_Sky_Color( r, normalize(sunDirection), false );
-		//accumCol = mix(Get_Sky_Color( r, normalize(sunDirection), false ), initialSkyColor, 0.5);
-		vec3 sun_r = Get_Sky_Color( r, normalize(sunDirection), false, 5 );
-		accumCol = mix(Get_Sky_Color( r, normalize(sunDirection), false, 5 ), accumCol, 0.5);
+		vec3 color = Get_Sky_Color( r, normalize(sunDirection), true, 0 );
+		color += Get_Sky_Color( r, normalize(sunDirection), true, 1 );
+		color += Get_Sky_Color( r, normalize(sunDirection), true, 2 );
+
+		if (showRealSun)
+			accumCol = mix(color, accumCol, 0.5);
+		else
+			accumCol = color;
 	}
 	else // terrain and other objects
 	{
