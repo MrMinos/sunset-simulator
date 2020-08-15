@@ -1,6 +1,8 @@
 
 THREE.ShaderChunk[ 'pathtracing_physical_sky_functions' ] = `
 
+#define DISTANCE_TO_SUN 100000
+
 float RayleighPhase(float cosTheta)
 {
 	return THREE_OVER_SIXTEENPI * (1.0 + (cosTheta * cosTheta));
@@ -24,16 +26,13 @@ float SunIntensity(float zenithAngleCos)
 	return SUN_POWER * max( 0.0, 1.0 - exp( -( CUTOFF_ANGLE - acos(zenithAngleCos) ) ) );
 }
 
-vec3 Get_Sky_Color(Ray r, vec3 sunDirection)
+vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera)
 {
 
     // TODO
     // 1. Wavelength sampling
     // 2. Dynamic refraction
     // 3. Atmospheric refraction (automatic?)
-
-
-
 
     vec3 viewDir = normalize(r.direction);
 	
@@ -77,11 +76,32 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection)
 	sky *= mix( vec3(1.0), pow(somethingElse * Fex,vec3(0.5)), 
 	clamp(oneMinusCosSun * oneMinusCosSun * oneMinusCosSun * oneMinusCosSun * oneMinusCosSun, 0.0, 1.0) );
 
+	vec3 sun;
+	float sundisk = smoothstep(SUN_ANGULAR_DIAMETER_COS - (uSunDiameter < 0.0 ? 0.0 : uSunDiameter), SUN_ANGULAR_DIAMETER_COS, cosViewSunAngle);
+
 	// composition + solar disk
-    float sundisk = smoothstep(SUN_ANGULAR_DIAMETER_COS - 0.0001, SUN_ANGULAR_DIAMETER_COS, cosViewSunAngle);
-	vec3 sun = (sunE * SUN_POWER * Fex) * sundisk;
+	if (!rayFromCamera) {
+		sun = (sunE * SUN_POWER * Fex) * sundisk;
+	}
+	// Sun wavelength samples
+	else {
+		vec3 acc;
+
+
+		float r = exp(-(TOTAL_RAYLEIGH.x * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
+		float g = exp(-(TOTAL_RAYLEIGH.y * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
+		float b = exp(-(TOTAL_RAYLEIGH.z * RAYLEIGH_COEFFICIENT * rayleighOpticalLength));
+
+		sun = (sunE * SUN_POWER * vec3 (r, g, b)) * sundisk;
+	}
+
 	
-	return sky + sun;
+	// TODO: animation pause
+
+	if (uNoSun)
+		return sky;
+	else
+		return sky + sun;
 }
 
 `;
