@@ -632,7 +632,7 @@ vec3 CalculateRadiance( Ray r, vec3 sunDirection, inout uvec2 seed )
 		if (showRealSun)
 			accumCol = mix(color, accumCol, 0.5);
 		else
-			accumCol = color;
+			accumCol = color + Get_Sky_Color( r, normalize(sunDirection), false, 20 );
 	}
 	else // terrain and other objects
 	{

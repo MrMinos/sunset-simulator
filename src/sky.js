@@ -104,12 +104,14 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection, bool rayFromCamera, int rgb)
 
 		//sun = (sunE * SUN_POWER * vec3 (r, g, b)) * sundisk;
 		sun = color * sunE * SUN_POWER * sundisk;
+		if (!uNoSun)
+			return sun;
 	}
 
 	
 	// TODO: animation pause
 
-	if (uNoSun)
+	if (uNoSun || rgb == 20) // total hack, should just define a new function param
 		return sky;
 	else
 		return sky + sun;
